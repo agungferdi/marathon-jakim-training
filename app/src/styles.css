@@ -55,6 +55,13 @@
   --z-strides: #7e2a78;
   --z-hills: #7e2a78;
 
+  /* run log: status (always shown with an icon and words) and the planned reference mark */
+  --ok: #1f7a4d;
+  --ok-tint: #e3f2ea;
+  --warn: #b0500c;
+  --warn-tint: #fbeee2;
+  --ref: #8a8eb0;
+
   --display: 'Big Shoulders Display', 'Arial Narrow', sans-serif;
   --text: 'Atkinson Hyperlegible', system-ui, sans-serif;
 
@@ -1036,6 +1043,511 @@ button.cell:hover {
   color: var(--ink-3);
 }
 
+.panel__delete {
+  margin-left: auto;
+  color: var(--ink-2);
+}
+.panel__delete:hover:not(:disabled) {
+  color: var(--warn);
+  border-color: var(--warn);
+}
+.panel__after {
+  margin-left: auto;
+}
+
+.panel__doneflag {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  font-size: 15px;
+}
+
+/* ───────────── Calendar: logged days ───────────── */
+
+.cell__pace {
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  color: var(--ink-2);
+}
+.cell__pace small {
+  font-weight: 400;
+  font-size: 11px;
+}
+.cell.t-race .cell__pace,
+.cell.t-test .cell__pace {
+  color: var(--moon);
+}
+.cell.is-off .cell__check {
+  background: var(--warn);
+}
+.cell.is-done .cell__km {
+  font-size: 28px;
+}
+
+/* ───────────── Run log (panel) ───────────── */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.status {
+  width: 18px;
+  height: 18px;
+  flex: none;
+}
+.status--on circle {
+  fill: var(--ok);
+}
+.status--off circle {
+  fill: var(--warn);
+}
+
+.runlog {
+  margin: 4px 0 8px;
+  padding: 2px 18px 16px;
+  border-radius: 12px;
+  background: var(--page);
+  border-left: 4px solid var(--ok);
+  scroll-margin-top: 80px;
+}
+.runlog.is-off {
+  border-left-color: var(--warn);
+}
+.runlog .panel__h {
+  margin-top: 14px;
+}
+
+.runlog__headline {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  font-weight: 700;
+  font-size: 16px;
+  line-height: 1.4;
+}
+.runlog__headline .status {
+  margin-top: 2px;
+}
+
+.runlog__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 26px;
+  margin: 12px 0 8px;
+}
+.runlog__stats dt {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.runlog__stats dd {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 28px;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+.runlog__stats small {
+  font-family: var(--text);
+  font-weight: 400;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+
+.runlog__lines {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  font-size: 15px;
+}
+.runlog__lines li {
+  display: flex;
+  gap: 9px;
+  align-items: flex-start;
+  padding: 5px 0;
+}
+.runlog__lines .status {
+  width: 16px;
+  height: 16px;
+  margin-top: 3px;
+}
+
+.runlog__notes {
+  margin-top: 10px;
+  font-size: 15px;
+  color: var(--ink-2);
+}
+
+.runlog--form {
+  border-left-color: var(--ink);
+}
+
+.runlog__intro {
+  font-size: 15px;
+  color: var(--ink-2);
+  margin-bottom: 12px;
+}
+
+.runform {
+  display: grid;
+  gap: 14px;
+}
+
+.field {
+  border: 0;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
+}
+.field > label,
+.field > legend {
+  display: block;
+  padding: 0;
+  font-weight: 700;
+  font-size: 14px;
+  margin-bottom: 5px;
+}
+.field__opt {
+  font-weight: 400;
+  color: var(--ink-3);
+  margin-left: 4px;
+}
+.field__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+}
+.field__input {
+  font: inherit;
+  font-size: 17px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  min-height: 44px;
+  font-variant-numeric: tabular-nums;
+}
+.field__input:hover {
+  border-color: var(--ink-3);
+}
+.field__input:focus-visible {
+  outline: 3px solid var(--lsd);
+  outline-offset: 0;
+  border-color: var(--lsd);
+}
+.field__input[aria-invalid="true"] {
+  border-color: var(--warn);
+}
+.field__input--km {
+  width: 96px;
+}
+.field__input--num {
+  width: 62px;
+  text-align: center;
+}
+.field__input--notes {
+  width: 100%;
+  resize: vertical;
+  line-height: 1.45;
+}
+.field__unit {
+  font-size: 15px;
+  color: var(--ink-2);
+  margin-right: 6px;
+}
+.field__plan {
+  font-size: 14px;
+  color: var(--ink-3);
+}
+.field__err {
+  margin-top: 5px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--warn);
+}
+
+.feel {
+  display: inline-flex;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  background: var(--paper);
+  padding: 3px;
+  gap: 2px;
+}
+.feel__opt {
+  position: relative;
+}
+.feel__opt input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  margin: 0;
+  cursor: pointer;
+}
+.feel__opt span {
+  display: block;
+  padding: 7px 16px;
+  border-radius: 999px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.feel__opt input:checked + span {
+  background: var(--ink);
+  color: #fff;
+}
+.feel__opt input:focus-visible + span {
+  outline: 3px solid var(--lsd);
+  outline-offset: 1px;
+}
+
+.runform__preview {
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+  display: grid;
+  gap: 6px;
+}
+.runform__pace {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  color: var(--ink-2);
+  font-size: 15px;
+}
+.runform__pace strong {
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: 40px;
+  line-height: 1;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+.runform__wait {
+  font-size: 15px;
+  color: var(--ink-3);
+}
+
+.runlog__remove {
+  margin-top: 14px;
+  padding: 4px 0;
+  border: 0;
+  background: none;
+  font-size: 14px;
+  color: var(--ink-2);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  cursor: pointer;
+}
+.runlog__remove:hover {
+  color: var(--warn);
+}
+
+/* ───────────── Training log (dashboard) ───────────── */
+
+.dash {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  margin: 0 0 18px;
+  border-top: 2px solid var(--ink);
+}
+.dash__stat {
+  padding: 14px 18px 4px 0;
+}
+.dash__stat + .dash__stat {
+  padding-left: 18px;
+  border-left: 1px solid var(--line);
+}
+.dash__stat dt {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--ink-2);
+}
+.dash__stat dd {
+  margin: 2px 0 0;
+  font-family: var(--display);
+  font-weight: 800;
+  font-size: clamp(36px, 4.4vw, 52px);
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+}
+.dash__stat dd small {
+  font-family: var(--text);
+  font-weight: 400;
+  font-size: 16px;
+  color: var(--ink-2);
+}
+.dash__stat p {
+  font-size: 14px;
+  color: var(--ink-3);
+  margin-top: 4px;
+}
+
+.chart__legend .lg--planned::before {
+  height: 10px;
+  width: 12px;
+  border: 1.5px dashed var(--ref);
+  border-radius: 2px;
+  background: transparent;
+}
+.chart__legend .lg--run::before,
+.chart__tip .tiprow--run::before {
+  height: 10px;
+  width: 8px;
+  background: var(--lsd);
+  border-radius: 2px;
+}
+.chart__tip .tiprow--planned::before {
+  height: 10px;
+  width: 8px;
+  border: 1.5px dashed var(--moon-soft);
+  border-radius: 2px;
+}
+
+.wk__planned {
+  fill: rgba(138, 142, 176, 0.08);
+  stroke: var(--ref);
+  stroke-width: 1.5;
+  stroke-dasharray: 3 2.5;
+}
+.wk__run {
+  fill: var(--lsd);
+}
+.wk.is-future .wk__planned {
+  opacity: 0.55;
+}
+.wk.is-hover .wk__planned {
+  fill: rgba(138, 142, 176, 0.22);
+  opacity: 1;
+}
+
+.dash__h {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 26px;
+  margin: 30px 0 10px;
+}
+
+.runs {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+.runs th,
+.runs td {
+  padding: 10px 14px 10px 0;
+  border-bottom: 1px solid var(--line-2);
+  text-align: left;
+  white-space: nowrap;
+}
+.runs td:nth-child(2) {
+  white-space: normal;
+  min-width: 160px;
+}
+.runs tbody tr:last-child th,
+.runs tbody tr:last-child td {
+  border-bottom: 0;
+}
+.runs thead th {
+  font-size: 13px;
+  color: var(--ink-3);
+}
+.runs .num {
+  text-align: right;
+}
+.runs__day {
+  padding: 2px 0;
+  border: 0;
+  background: none;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: var(--line);
+  text-underline-offset: 4px;
+  cursor: pointer;
+}
+.runs__day:hover {
+  text-decoration-color: currentColor;
+}
+.runs__plan {
+  display: block;
+  font-size: 12.5px;
+  color: var(--ink-3);
+}
+.runs__check {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+}
+.runs__check .status {
+  width: 16px;
+  height: 16px;
+}
+.runs__missed {
+  color: var(--ink-3);
+  font-style: italic;
+}
+.runs tr.is-missed td,
+.runs tr.is-missed .runs__day {
+  color: var(--ink-3);
+}
+
+.dash__more {
+  margin-top: 12px;
+}
+
+.dash__empty {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 14px 24px;
+  padding: 20px 22px;
+  border: 1.5px dashed var(--line);
+  border-radius: 12px;
+}
+.dash__empty p {
+  flex: 1 1 340px;
+  max-width: 62ch;
+  color: var(--ink-2);
+}
+
+.dash__backup {
+  margin-top: 26px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 20px;
+  font-size: 14px;
+  color: var(--ink-2);
+}
+.dash__backup > p:first-child {
+  flex: 1 1 360px;
+  max-width: 64ch;
+}
+.dash__backupbtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.dash__msg {
+  flex-basis: 100%;
+  font-weight: 700;
+  color: var(--ink);
+}
+.dash__msg:empty {
+  display: none;
+}
+
 @keyframes slide-in {
   from {
     transform: translateX(40px);
@@ -1527,6 +2039,89 @@ button.cell:hover {
     width: 14px;
     height: 14px;
   }
+  /* logged days show the pace instead of the distance */
+  .cell.is-done .cell__km {
+    display: none;
+  }
+  .cell__pace {
+    align-self: end;
+    font-size: 12px;
+    letter-spacing: -0.2px;
+  }
+  .cell__pace small {
+    display: none;
+  }
+
+  .dash {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .dash__stat:nth-child(3) {
+    padding-left: 0;
+    border-left: 0;
+  }
+  .dash__stat:nth-child(n + 3) {
+    border-top: 1px solid var(--line);
+  }
+  .feel__opt span {
+    padding: 7px 14px;
+  }
+
+  /* runs table becomes a list: day + check, session, then distance / time / pace */
+  .runs thead {
+    display: none;
+  }
+  .runs,
+  .runs tbody {
+    display: block;
+  }
+  .runs tr {
+    display: grid;
+    grid-template-columns: auto auto 1fr;
+    gap: 3px 16px;
+    padding: 12px 0;
+    border-bottom: 1px solid var(--line-2);
+  }
+  .runs tbody tr:last-child {
+    border-bottom: 0;
+  }
+  .runs th,
+  .runs td,
+  .runs tbody tr:last-child th,
+  .runs tbody tr:last-child td {
+    padding: 0;
+    border: 0;
+    text-align: left;
+  }
+  .runs th {
+    grid-column: 1 / 3;
+  }
+  .runs td:nth-child(6) {
+    grid-column: 3;
+    grid-row: 1;
+    justify-self: end;
+  }
+  .runs td:nth-child(2) {
+    grid-column: 1 / -1;
+    min-width: 0;
+    color: var(--ink-2);
+    font-size: 14px;
+  }
+  .runs .num {
+    text-align: left;
+  }
+  .runs td:nth-child(3) {
+    display: flex;
+    gap: 5px;
+    align-items: baseline;
+  }
+  .runs__plan {
+    display: inline;
+  }
+  .runs td:nth-child(5):not(:empty)::after {
+    content: ' /km';
+    color: var(--ink-3);
+    font-size: 13px;
+  }
 
   .panel {
     top: auto;
@@ -1548,7 +2143,7 @@ button.cell:hover {
   .panel__foot {
     padding: 12px 18px;
   }
-  .panel__hint {
+  .panel__hint:not(.panel__hint--always) {
     display: none;
   }
   .panel__racestats {

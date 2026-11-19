@@ -1,9 +1,11 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { addDays, fmtClock, fmtDuration, fmtLong, fromKey, toKey } from '../plan/dates';
 import { PHASES, getSession, weekOf, type Session } from '../plan/plan';
 import { ZONES } from '../plan/zones';
 import { Chevron } from './Calendar';
 import { EffortProfile } from './EffortProfile';
+import { RUNLOG_FORM_ID, RunLog, StatusIcon } from './RunLog';
+import { asPlanned, checkRun, isLoggable, type RunLog as Entry } from '../log/log';
 
 const TYPE_NAME: Record<Session['type'], string> = {
   rest: 'Rest',
@@ -18,14 +20,26 @@ const TYPE_NAME: Record<Session['type'], string> = {
 
 interface Props {
   dateKey: string;
-  done: boolean;
-  onToggleDone: () => void;
+  log?: Entry;
+  onSave: (entry: Entry) => void;
+  onRemove: () => void;
   onNavigate: (key: string) => void;
   onClose: () => void;
 }
 
-export function DetailPanel({ dateKey, done, onToggleDone, onNavigate, onClose }: Props) {
+export function DetailPanel({ dateKey, log, onSave, onRemove, onNavigate, onClose }: Props) {
   const s = getSession(dateKey)!;
+  // Which day's form is open, and whether it was opened by "Mark as done".
+  const [editing, setEditing] = useState<{ key: string; justMarked: boolean } | null>(null);
+  const isEditing = editing?.key === dateKey;
+  const stopEditing = () => setEditing(null);
+  // The last run deleted from this panel, so it can be restored with Undo.
+  const [deleted, setDeleted] = useState<{ key: string; entry: Entry } | null>(null);
+  const deleteRun = () => {
+    if (log) setDeleted({ key: dateKey, entry: log });
+    onRemove();
+    stopEditing();
+  };
   const closeRef = useRef<HTMLButtonElement>(null);
   const panelRef = useRef<HTMLDivElement>(null);
   const prevKey = toKey(addDays(fromKey(dateKey), -1));
@@ -50,12 +64,19 @@ export function DetailPanel({ dateKey, done, onToggleDone, onNavigate, onClose }
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
-      if (e.key === 'ArrowLeft' && hasPrev) onNavigate(prevKey);
-      if (e.key === 'ArrowRight' && hasNext) onNavigate(nextKey);
+      const t = e.target as HTMLElement | null;
+      const inField = !!t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable);
+      if (e.key === 'Escape') {
+        if (isEditing) setEditing(null);
+        else onClose();
+      }
+      if (!inField && e.key === 'ArrowLeft' && hasPrev) onNavigate(prevKey);
+      if (!inField && e.key === 'ArrowRight' && hasNext) onNavigate(nextKey);
       if (e.key === 'Tab' && panelRef.current) {
         // keep focus inside the dialog
-        const f = panelRef.current.querySelectorAll<HTMLElement>('button:not([disabled]), summary, [href]');
+        const f = panelRef.current.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), summary, [href], input:not([type="radio"]), input[type="radio"]:checked, textarea',
+        );
         if (!f.length) return;
         const firstEl = f[0];
         const lastEl = f[f.length - 1];
@@ -70,7 +91,7 @@ export function DetailPanel({ dateKey, done, onToggleDone, onNavigate, onClose }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [hasPrev, hasNext, prevKey, nextKey, onClose, onNavigate]);
+  }, [hasPrev, hasNext, prevKey, nextKey, onClose, onNavigate, isEditing]);
 
   const wk = weekOf(dateKey);
   const isRest = s.type === 'rest';
@@ -144,8 +165,24 @@ export function DetailPanel({ dateKey, done, onToggleDone, onNavigate, onClose }
             </dl>
           )}
 
+          {isLoggable(s) && (
+            <RunLog
+              key={`${dateKey}-${isEditing}`}
+              session={s}
+              log={log}
+              editing={isEditing}
+              justMarked={!!editing?.justMarked}
+              onSave={(entry) => {
+                onSave(entry);
+                stopEditing();
+              }}
+              onRemove={deleteRun}
+            />
+          )}
+
           {s.segments.length > 0 && (
             <>
+              {log && !isEditing && <h3 className="panel__h">The plan</h3>}
               <EffortProfile segments={s.segments} tall />
               <ol className="segs">
                 {s.segments.map((seg, i) => {
@@ -230,15 +267,93 @@ export function DetailPanel({ dateKey, done, onToggleDone, onNavigate, onClose }
           )}
         </div>
 
-        {!isRest && s.type !== 'past' && (
+        {isLoggable(s) && (
           <div className="panel__foot">
-            <button className={`btn ${done ? 'btn--done' : 'btn--ink'}`} aria-pressed={done} onClick={onToggleDone}>
-              {done ? 'Done' : 'Mark as done'}
-            </button>
-            <span className="panel__hint">Use the arrow keys to move between days.</span>
+            {/* Distinct keys: React must not turn the clicked "Mark as done" button into the form's submit
+                button, or the browser treats that same click as a submit and closes the form at once. */}
+            {isEditing ? (
+              <>
+                <button key="save" type="submit" form={RUNLOG_FORM_ID} className="btn btn--ink">
+                  Save run
+                </button>
+                <button key="cancel" type="button" className="btn btn--ghost" onClick={stopEditing}>
+                  Cancel
+                </button>
+              </>
+            ) : log ? (
+              <>
+                <button key="edit" type="button" className="btn btn--ghost" onClick={() => setEditing({ key: dateKey, justMarked: false })}>
+                  Edit run
+                </button>
+                <span className="panel__doneflag">
+                  <StatusIcon ok={checkRun(s, log).onPlan} />
+                  Done
+                </span>
+                <button
+                  key="delete"
+                  type="button"
+                  className="btn btn--icon panel__delete"
+                  onClick={deleteRun}
+                  aria-label="Delete this run"
+                  title="Delete this run"
+                >
+                  <TrashIcon />
+                </button>
+              </>
+            ) : deleted?.key === dateKey ? (
+              <>
+                <button
+                  key="undo"
+                  type="button"
+                  className="btn btn--ink"
+                  onClick={() => {
+                    onSave(deleted.entry);
+                    setDeleted(null);
+                  }}
+                >
+                  Undo
+                </button>
+                <span className="panel__hint panel__hint--always" role="status">
+                  Run deleted.
+                </span>
+                <button key="mark-after-delete" type="button" className="btn btn--ghost panel__after" onClick={() => setDeleted(null)}>
+                  Dismiss
+                </button>
+              </>
+            ) : (
+              <>
+                <button
+                  key="mark"
+                  type="button"
+                  className="btn btn--ink"
+                  onClick={() => {
+                    onSave(asPlanned(s));
+                    setEditing({ key: dateKey, justMarked: true });
+                  }}
+                >
+                  Mark as done
+                </button>
+                <span className="panel__hint">Saves the planned distance and time. You can adjust them next.</span>
+              </>
+            )}
           </div>
         )}
       </div>
     </div>
+  );
+}
+
+function TrashIcon() {
+  return (
+    <svg viewBox="0 0 16 16" width="16" height="16" aria-hidden="true">
+      <path
+        d="M2.5 4.5h11M6.5 4.5V3a.5.5 0 0 1 .5-.5h2a.5.5 0 0 1 .5.5v1.5M4 4.5l.6 8.4a1 1 0 0 0 1 .9h4.8a1 1 0 0 0 1-.9l.6-8.4M6.8 7v4.5M9.2 7v4.5"
+        fill="none"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </svg>
   );
 }

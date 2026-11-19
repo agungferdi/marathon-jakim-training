@@ -1,11 +1,12 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Calendar } from './components/Calendar';
+import { Dashboard } from './components/Dashboard';
 import { DetailPanel } from './components/DetailPanel';
 import { Hero } from './components/Hero';
 import { RaceDayPlan, Reasoning, ZonesTable } from './components/Sections';
 import { addDays, fromKey, toKey } from './plan/dates';
 import { CALENDAR_RANGE, PLAN_START, RACE_DATE, WEEK_SUMMARIES, getSession, weekOf } from './plan/plan';
-import { useDone } from './useDone';
+import { useLog } from './log/useLog';
 
 /** `?today=2027-03-03` lets you preview the app on another date. */
 function resolveToday(): Date {
@@ -27,7 +28,7 @@ export default function App() {
   const todayKey = toKey(today);
   const [month, setMonth] = useState(() => clampMonth(todayKey < PLAN_START ? fromKey(PLAN_START) : today));
   const [selected, setSelected] = useState<string | null>(null);
-  const { done, toggle } = useDone();
+  const { logs, save, remove, restore } = useLog();
 
   const currentWeek = weekOf(todayKey)?.week ?? -1;
 
@@ -57,7 +58,16 @@ export default function App() {
     <>
       <Hero today={today} currentWeek={currentWeek} upNext={upNext} onOpen={open} onPickWeek={pickWeek} />
       <main className="wrap main">
-        <Calendar month={month} today={today} selected={selected} done={done} onMonth={setMonth} onOpen={open} />
+        <Calendar month={month} today={today} selected={selected} logs={logs} onMonth={setMonth} onOpen={open} />
+        <Dashboard
+          logs={logs}
+          today={today}
+          currentWeek={currentWeek}
+          firstKey={upNext?.session.date ?? null}
+          onOpen={open}
+          onPickWeek={pickWeek}
+          onRestore={restore}
+        />
         <Reasoning />
         <ZonesTable />
         <RaceDayPlan onOpen={open} />
@@ -72,8 +82,9 @@ export default function App() {
       {selected && (
         <DetailPanel
           dateKey={selected}
-          done={!!done[selected]}
-          onToggleDone={() => toggle(selected)}
+          log={logs[selected]}
+          onSave={(entry) => save(selected, entry)}
+          onRemove={() => remove(selected)}
           onNavigate={open}
           onClose={() => setSelected(null)}
         />

@@ -1,4 +1,5 @@
-import { useLayoutEffect, useRef, useState } from 'react';
+import { useState } from 'react';
+import { useWidth } from '../useWidth';
 import { fmtPace } from '../plan/dates';
 import { RACE_PACING } from '../plan/plan';
 import { JRF_SPLITS } from '../plan/races';
@@ -11,18 +12,6 @@ const TICKS = [285, 315, 345, 375, 405];
 const X_MAX = 43;
 
 const planSecAt = (km: number) => RACE_PACING.find((b) => km - 0.5 < b.toKm)?.sec ?? RACE_PACING.at(-1)!.sec;
-
-function useWidth<T extends HTMLElement>() {
-  const ref = useRef<T>(null);
-  const [w, setW] = useState(720);
-  useLayoutEffect(() => {
-    if (!ref.current) return;
-    const ro = new ResizeObserver(([e]) => setW(Math.max(300, e.contentRect.width)));
-    ro.observe(ref.current);
-    return () => ro.disconnect();
-  }, []);
-  return [ref, w] as const;
-}
 
 /** JRF 2026 pace per km against the JAKIM pacing plan. One axis: pace. */
 export function PaceChart() {

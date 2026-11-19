@@ -1,4 +1,5 @@
-import { addDays, fmtLong, fmtMonth, mondayOf, sameMonth, toKey } from '../plan/dates';
+import { addDays, fmtClock, fmtLong, fmtMonth, fmtPace, mondayOf, sameMonth, toKey } from '../plan/dates';
+import { checkRun, fmtKm, type LogBook, type RunLog } from '../log/log';
 import { CALENDAR_RANGE, PHASES, getSession, weekOf, type Session } from '../plan/plan';
 
 const WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
@@ -16,12 +17,12 @@ interface CalendarProps {
   month: Date;
   today: Date;
   selected: string | null;
-  done: Record<string, true>;
+  logs: LogBook;
   onMonth: (d: Date) => void;
   onOpen: (key: string) => void;
 }
 
-export function Calendar({ month, today, selected, done, onMonth, onOpen }: CalendarProps) {
+export function Calendar({ month, today, selected, logs, onMonth, onOpen }: CalendarProps) {
   const first = new Date(month.getFullYear(), month.getMonth(), 1);
   const last = new Date(month.getFullYear(), month.getMonth() + 1, 0);
   const start = mondayOf(first);
@@ -91,7 +92,7 @@ export function Calendar({ month, today, selected, done, onMonth, onOpen }: Cale
                     isToday={key === todayKey}
                     isPast={key < todayKey}
                     isSelected={key === selected}
-                    isDone={!!done[key]}
+                    log={logs[key]}
                     onOpen={onOpen}
                   />
                 );
@@ -121,11 +122,13 @@ interface CellProps {
   isToday: boolean;
   isPast: boolean;
   isSelected: boolean;
-  isDone: boolean;
+  log?: RunLog;
   onOpen: (key: string) => void;
 }
 
-function Cell({ day, session, outside, isToday, isPast, isSelected, isDone, onOpen }: CellProps) {
+function Cell({ day, session, outside, isToday, isPast, isSelected, log, onOpen }: CellProps) {
+  const isDone = !!log && !!session;
+  const onPlan = isDone ? checkRun(session!, log!).onPlan : true;
   const cls = [
     'cell',
     session ? `t-${session.type}` : 'cell--empty',
@@ -134,6 +137,7 @@ function Cell({ day, session, outside, isToday, isPast, isSelected, isDone, onOp
     isPast && 'is-past',
     isSelected && 'is-selected',
     isDone && 'is-done',
+    isDone && !onPlan && 'is-off',
   ]
     .filter(Boolean)
     .join(' ');
@@ -154,20 +158,24 @@ function Cell({ day, session, outside, isToday, isPast, isSelected, isDone, onOp
   }
 
   const isRest = session.type === 'rest';
-  const label = `${fmtLong(day)}. ${session.title}${isRest ? '' : `, ${session.km} km`}${isDone ? ', done' : ''}${isToday ? ', today' : ''}`;
+  const ran = log
+    ? `, done: ${fmtKm(log.km)} km in ${fmtClock(log.sec)}, ${fmtPace(log.sec / log.km)} per km${onPlan ? ', on plan' : ', off plan'}`
+    : '';
+  const label = `${fmtLong(day)}. ${session.title}${isRest ? '' : `, ${session.km} km planned`}${ran}${isToday ? ', today' : ''}`;
 
   return (
     <div role="gridcell" className="cell__wrap">
       <button className={cls} onClick={() => onOpen(session.date)} aria-label={label}>
         {dateNum}
-        {isDone && <Check />}
+        {isDone && <Check off={!onPlan} />}
         <span className="cell__label">{session.short}</span>
         {!isRest && (
           <span className="cell__km">
-            {formatKm(session.km)}
+            {log ? fmtKm(log.km) : formatKm(session.km)}
             <small>km</small>
           </span>
         )}
+        {log && <span className="cell__pace">{fmtPace(log.sec / log.km)}<small> /km</small></span>}
       </button>
     </div>
   );
@@ -175,10 +183,14 @@ function Cell({ day, session, outside, isToday, isPast, isSelected, isDone, onOp
 
 const formatKm = (km: number) => (Number.isInteger(km) ? String(km) : km.toFixed(1));
 
-function Check() {
+function Check({ off }: { off: boolean }) {
   return (
     <svg className="cell__check" viewBox="0 0 16 16" aria-hidden="true">
-      <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      {off ? (
+        <path d="M8 3.5v5.5M8 12.2v.3" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" />
+      ) : (
+        <path d="M3.5 8.5l3 3 6-7" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round" />
+      )}
     </svg>
   );
 }
